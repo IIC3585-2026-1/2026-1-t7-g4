@@ -45,6 +45,13 @@
     maximumFractionDigits: 2,
   });
 
+  const compactMoney = new Intl.NumberFormat('es-CL', {
+    style: 'currency',
+    currency: 'USD',
+    notation: 'compact',
+    maximumFractionDigits: 2,
+  });
+
   function clearCurrentRequest() {
     if (timer) clearTimeout(timer);
     controller?.abort();
@@ -140,6 +147,8 @@
     if (!marketChanged && !pollingChanged) return;
 
     if (marketChanged) {
+      ticker = null;
+      candles = [];
       loadMarket();
     } else if (!pollingEnabled) {
       clearCurrentRequest();
@@ -150,21 +159,44 @@
     }
   }
 
-  function chartPoints() {
-    if (candles.length < 2) return '';
-    const closes = candles.map((candle) => candle.close);
+  function formatChartTime(timestamp: number) {
+    return new Date(timestamp * 1000).toLocaleString('es-CL', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  function buildChart(data: Candle[]) {
+    if (data.length < 2) {
+      return { points: '', min: 0, max: 0, start: '', middle: '', end: '' };
+    }
+
+    const closes = data.map((candle) => candle.close);
     const min = Math.min(...closes);
     const max = Math.max(...closes);
     const range = max - min || 1;
 
-    return closes
+    const points = closes
       .map((close, index) => {
-        const x = (index / (closes.length - 1)) * 700;
-        const y = 210 - ((close - min) / range) * 180;
+        const x = 75 + (index / (closes.length - 1)) * 605;
+        const y = 190 - ((close - min) / range) * 160;
         return `${x},${y}`;
       })
       .join(' ');
+
+    return {
+      points,
+      min,
+      max,
+      start: formatChartTime(data[0].time),
+      middle: formatChartTime(data[Math.floor(data.length / 2)].time),
+      end: formatChartTime(data[data.length - 1].time),
+    };
   }
+
+  $: chart = buildChart(candles);
 
   onMount(() => {
     window.addEventListener('crypto:config-change', handleConfig);
@@ -221,14 +253,108 @@
 {/if}
 
 {#if candles.length > 1}
-  <div class="mt-7 flex items-end justify-between gap-3">
-    <h3 class="text-base font-semibold text-slate-950">Últimas 24 horas</h3>
-    <span class="text-xs text-slate-500">{candles.length} puntos por hora</span>
+  <div class="chart-header">
+    <h3>{productId} · últimas 24 horas</h3>
+    <span>{candles.length} puntos por hora</span>
   </div>
-  <div class="mt-3 overflow-hidden rounded-2xl border border-slate-100 bg-gradient-to-b from-indigo-50 via-white to-white shadow-sm">
-    <svg class="block h-[220px] w-full" viewBox="0 0 700 240" role="img" aria-label={`Evolución de ${productId} durante las últimas 24 horas`}>
-      <line class="stroke-slate-200 stroke-2" x1="0" y1="210" x2="700" y2="210"></line>
-      <polyline class="fill-none stroke-indigo-600 stroke-[5] [stroke-linecap:round] [stroke-linejoin:round]" points={chartPoints()}></polyline>
-    </svg>
+  <div class="chart">
+    {#key productId}
+      <svg viewBox="0 0 700 240" role="img" aria-label={`Evolución de ${productId} durante las últimas 24 horas`}>
+        <line class="grid-line" x1="75" y1="30" x2="680" y2="30"></line>
+        <line class="grid-line" x1="75" y1="110" x2="680" y2="110"></line>
+        <line class="axis-line" x1="75" y1="190" x2="680" y2="190"></line>
+        <line class="axis-line" x1="75" y1="30" x2="75" y2="190"></line>
+
+        <text class="axis-label y-label" x="67" y="34">{compactMoney.format(chart.max)}</text>
+        <text class="axis-label y-label" x="67" y="194">{compactMoney.format(chart.min)}</text>
+        <text class="axis-title" x="18" y="115" transform="rotate(-90 18 115)">Precio USD</text>
+
+        <text class="axis-label x-label" x="75" y="218">{chart.start}</text>
+        <text class="axis-label x-label middle" x="377" y="218">{chart.middle}</text>
+        <text class="axis-label x-label end" x="680" y="218">{chart.end}</text>
+
+        <polyline points={chart.points}></polyline>
+      </svg>
+    {/key}
   </div>
 {/if}
+
+<style>
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .chart-header {
+    align-items: baseline;
+    margin-top: 28px;
+  }
+
+  .chart-header h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .chart-header span {
+    font-size: 0.75rem;
+  }
+
+  .chart {
+    margin-top: 8px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #f7f6ff, #fff);
+    border-radius: 12px;
+  }
+
+  svg {
+    display: block;
+    width: 100%;
+    min-height: 190px;
+  }
+
+  .grid-line {
+    stroke: #dfe3ed;
+    stroke-dasharray: 5 5;
+    stroke-width: 1;
+  }
+
+  .axis-line {
+    stroke: #aeb6c5;
+    stroke-width: 1.5;
+  }
+
+  .axis-label,
+  .axis-title {
+    fill: #707a8f;
+    font-family: inherit;
+    font-size: 11px;
+  }
+
+  .y-label {
+    text-anchor: end;
+  }
+
+  .x-label.middle {
+    text-anchor: middle;
+  }
+
+  .x-label.end {
+    text-anchor: end;
+  }
+
+  .axis-title {
+    font-size: 10px;
+    text-anchor: middle;
+  }
+
+  polyline {
+    fill: none;
+    stroke: #635bff;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 5;
+  }
+
+</style>
