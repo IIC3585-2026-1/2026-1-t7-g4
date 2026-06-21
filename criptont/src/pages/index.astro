@@ -1,11 +1,165 @@
 ---
-import Welcome from '../components/Welcome.astro';
+import CryptoControls from '../components/CryptoControls.vue';
+import CryptoVisualizer from '../components/CryptoVisualizer.svelte';
 import Layout from '../layouts/Layout.astro';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+type Market = {
+	id: string;
+	displayName: string;
+};
+
+const fallbackMarkets: Market[] = [
+	{ id: 'BTC-USD', displayName: 'Bitcoin / USD' },
+	{ id: 'ETH-USD', displayName: 'Ethereum / USD' },
+	{ id: 'SOL-USD', displayName: 'Solana / USD' },
+	{ id: 'LTC-USD', displayName: 'Litecoin / USD' },
+	{ id: 'ADA-USD', displayName: 'Cardano / USD' },
+	{ id: 'DOGE-USD', displayName: 'Dogecoin / USD' },
+	{ id: 'AVAX-USD', displayName: 'Avalanche / USD' },
+	{ id: 'LINK-USD', displayName: 'Chainlink / USD' },
+	{ id: 'DOT-USD', displayName: 'Polkadot / USD' },
+	{ id: 'BCH-USD', displayName: 'Bitcoin Cash / USD' },
+];
+
+let markets = fallbackMarkets;
+
+try {
+	const response = await fetch('https://api.exchange.coinbase.com/products');
+	if (!response.ok) throw new Error('No fue posible obtener los mercados');
+
+	const products = await response.json();
+	const available = new Map(
+		products
+			.filter((product: any) => product.quote_currency === 'USD' && product.status === 'online')
+			.map((product: any) => [product.id, product.display_name]),
+	);
+
+	markets = fallbackMarkets.filter((market) => available.has(market.id));
+	if (markets.length === 0) markets = fallbackMarkets;
+} catch {
+	// El fallback permite generar el sitio aunque Coinbase no responda durante el build.
+}
 ---
 
 <Layout>
-	<Welcome />
+	<header class="site-header">
+		<div>
+			<p class="eyebrow">Dashboard Astro</p>
+			<h1>Criptont</h1>
+		</div>
+		<p>Precios de Coinbase Exchange con actualización cada 5 segundos.</p>
+	</header>
+
+	<main class="dashboard">
+		<section class="panel controls-panel" aria-labelledby="controls-title">
+			<h2 id="controls-title">Configuración</h2>
+			<p>Selecciona el mercado que quieres monitorear.</p>
+			<CryptoControls client:load {markets} initialProductId="BTC-USD" />
+		</section>
+
+		<section class="panel viewer-panel" aria-labelledby="viewer-title">
+			<h2 id="viewer-title">Mercado en vivo</h2>
+			<CryptoVisualizer client:visible initialProductId="BTC-USD" />
+		</section>
+	</main>
+
+	<footer>
+		Datos públicos de Coinbase Exchange · Astro + Vue + Svelte
+	</footer>
 </Layout>
+
+<style>
+	.site-header,
+	.dashboard,
+	footer {
+		width: min(1180px, calc(100% - 32px));
+		margin-inline: auto;
+	}
+
+	.site-header {
+		display: flex;
+		align-items: end;
+		justify-content: space-between;
+		gap: 32px;
+		padding: 48px 0 28px;
+	}
+
+	h1,
+	h2,
+	p {
+		margin-top: 0;
+	}
+
+	h1 {
+		margin-bottom: 0;
+		font-size: clamp(2.2rem, 7vw, 4rem);
+		letter-spacing: -0.06em;
+	}
+
+	h2 {
+		margin-bottom: 8px;
+	}
+
+	.site-header > p,
+	.panel > p,
+	footer {
+		color: #657087;
+	}
+
+	.site-header > p {
+		max-width: 420px;
+		margin-bottom: 8px;
+		text-align: right;
+	}
+
+	.eyebrow {
+		margin-bottom: 4px;
+		color: #635bff;
+		font-size: 0.8rem;
+		font-weight: 800;
+		letter-spacing: 0.13em;
+		text-transform: uppercase;
+	}
+
+	.dashboard {
+		display: grid;
+		grid-template-columns: minmax(260px, 0.75fr) minmax(0, 1.5fr);
+		gap: 20px;
+		align-items: start;
+	}
+
+	.panel {
+		min-width: 0;
+		padding: 26px;
+		background: white;
+		border: 1px solid #e4e9f2;
+		border-radius: 18px;
+		box-shadow: 0 12px 35px rgb(25 38 68 / 7%);
+	}
+
+	footer {
+		padding: 24px 0 40px;
+		font-size: 0.85rem;
+		text-align: center;
+	}
+
+	@media (max-width: 760px) {
+		.site-header {
+			display: block;
+			padding-top: 30px;
+		}
+
+		.site-header > p {
+			margin-top: 12px;
+			text-align: left;
+		}
+
+		.dashboard {
+			grid-template-columns: 1fr;
+		}
+
+		.panel {
+			padding: 20px;
+		}
+	}
+</style>
