@@ -180,191 +180,55 @@
   });
 </script>
 
-<div class="status-row">
-  <span class:online={status === 'success'} class:paused={status === 'paused'} class="status-dot"></span>
-  <span>
+<div class="mt-5 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+  <span
+    class={`h-2.5 w-2.5 rounded-full ${status === 'success' ? 'bg-green-500' : status === 'paused' ? 'bg-yellow-500' : 'bg-slate-400'}`}
+  ></span>
+  <span class="font-medium text-slate-700">
     {status === 'loading' ? 'Cargando…' : status === 'paused' ? 'Actualizaciones detenidas' : status === 'error' ? 'Problema de conexión' : 'Actualización automática'}
   </span>
 </div>
 
 {#if ticker}
-  <div class="price-row">
-    <div>
-      <span class="label">{productId}</span>
-      <strong>{money.format(ticker.price)}</strong>
+  <div class="mt-5 flex flex-wrap items-end justify-between gap-4 border-b border-slate-100 pb-5">
+    <div class="grid gap-1">
+      <span class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-500">{productId}</span>
+      <strong class="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">{money.format(ticker.price)}</strong>
     </div>
-    <small>Actualizado {new Date(ticker.time).toLocaleTimeString('es-CL')}</small>
+    <small class="text-sm text-slate-500">Actualizado {new Date(ticker.time).toLocaleTimeString('es-CL')}</small>
   </div>
 
-  <div class="metrics">
-    <div><span>Compra</span><strong>{money.format(ticker.bid)}</strong></div>
-    <div><span>Venta</span><strong>{money.format(ticker.ask)}</strong></div>
-    <div><span>Volumen 24 h</span><strong>{number.format(ticker.volume)}</strong></div>
+  <div class="mt-5 grid gap-3 sm:grid-cols-3">
+    <div class="grid gap-2 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+      <span class="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">Compra</span>
+      <strong class="text-sm font-semibold text-slate-900">{money.format(ticker.bid)}</strong>
+    </div>
+    <div class="grid gap-2 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+      <span class="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">Venta</span>
+      <strong class="text-sm font-semibold text-slate-900">{money.format(ticker.ask)}</strong>
+    </div>
+    <div class="grid gap-2 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+      <span class="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">Volumen 24 h</span>
+      <strong class="text-sm font-semibold text-slate-900">{number.format(ticker.volume)}</strong>
+    </div>
   </div>
 {:else if status === 'loading'}
-  <div class="skeleton" aria-label="Cargando datos"></div>
+  <div class="mt-5 h-[230px] animate-pulse rounded-2xl border border-slate-100 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200" aria-label="Cargando datos"></div>
 {/if}
 
 {#if errorMessage}
-  <p class="error" role="status">{errorMessage}</p>
+  <p class="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="status">{errorMessage}</p>
 {/if}
 
 {#if candles.length > 1}
-  <div class="chart-header">
-    <h3>Últimas 24 horas</h3>
-    <span>{candles.length} puntos por hora</span>
+  <div class="mt-7 flex items-end justify-between gap-3">
+    <h3 class="text-base font-semibold text-slate-950">Últimas 24 horas</h3>
+    <span class="text-xs text-slate-500">{candles.length} puntos por hora</span>
   </div>
-  <div class="chart">
-    <svg viewBox="0 0 700 240" role="img" aria-label={`Evolución de ${productId} durante las últimas 24 horas`}>
-      <line x1="0" y1="210" x2="700" y2="210"></line>
-      <polyline points={chartPoints()}></polyline>
+  <div class="mt-3 overflow-hidden rounded-2xl border border-slate-100 bg-gradient-to-b from-indigo-50 via-white to-white shadow-sm">
+    <svg class="block h-[220px] w-full" viewBox="0 0 700 240" role="img" aria-label={`Evolución de ${productId} durante las últimas 24 horas`}>
+      <line class="stroke-slate-200 stroke-2" x1="0" y1="210" x2="700" y2="210"></line>
+      <polyline class="fill-none stroke-indigo-600 stroke-[5] [stroke-linecap:round] [stroke-linejoin:round]" points={chartPoints()}></polyline>
     </svg>
   </div>
 {/if}
-
-<style>
-  .status-row,
-  .price-row,
-  .chart-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .status-row {
-    justify-content: flex-start;
-    margin: 18px 0;
-    color: #6d778c;
-    font-size: 0.85rem;
-  }
-
-  .status-dot {
-    width: 9px;
-    height: 9px;
-    background: #f0a52b;
-    border-radius: 50%;
-  }
-
-  .status-dot.online { background: #1ca66c; }
-  .status-dot.paused { background: #8992a4; }
-
-  .price-row {
-    align-items: end;
-    padding-bottom: 20px;
-  }
-
-  .price-row div {
-    display: grid;
-    gap: 5px;
-  }
-
-  .price-row strong {
-    font-size: clamp(2rem, 7vw, 3.3rem);
-    letter-spacing: -0.05em;
-  }
-
-  .price-row small,
-  .label,
-  .chart-header span {
-    color: #778197;
-  }
-
-  .label {
-    font-size: 0.82rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-  }
-
-  .metrics {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-  }
-
-  .metrics div {
-    display: grid;
-    gap: 7px;
-    padding: 14px;
-    background: #f6f8fc;
-    border-radius: 10px;
-  }
-
-  .metrics span {
-    color: #778197;
-    font-size: 0.76rem;
-  }
-
-  .metrics strong {
-    font-size: 0.9rem;
-  }
-
-  .chart-header {
-    align-items: baseline;
-    margin-top: 28px;
-  }
-
-  .chart-header h3 {
-    margin: 0;
-    font-size: 1rem;
-  }
-
-  .chart-header span {
-    font-size: 0.75rem;
-  }
-
-  .chart {
-    margin-top: 8px;
-    overflow: hidden;
-    background: linear-gradient(180deg, #f7f6ff, #fff);
-    border-radius: 12px;
-  }
-
-  svg {
-    display: block;
-    width: 100%;
-    min-height: 190px;
-  }
-
-  line {
-    stroke: #dfe3ed;
-    stroke-width: 2;
-  }
-
-  polyline {
-    fill: none;
-    stroke: #635bff;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 5;
-  }
-
-  .error {
-    padding: 10px 12px;
-    color: #9d2d2d;
-    background: #fff0f0;
-    border-radius: 8px;
-    font-size: 0.85rem;
-  }
-
-  .skeleton {
-    height: 230px;
-    background: linear-gradient(90deg, #f0f2f7, #fafbfc, #f0f2f7);
-    border-radius: 12px;
-  }
-
-  @media (max-width: 560px) {
-    .price-row {
-      display: block;
-    }
-
-    .price-row small {
-      display: block;
-      margin-top: 8px;
-    }
-
-    .metrics {
-      grid-template-columns: 1fr;
-    }
-  }
-</style>

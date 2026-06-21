@@ -1,5 +1,9 @@
+---
+import '../styles/global.css';
+---
+
 <!doctype html>
-<html lang="es">
+<html lang="es" class="h-full bg-slate-50">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
@@ -8,32 +12,7 @@
 		<meta name="generator" content={Astro.generator} />
 		<title>Criptont | Monitor de criptomonedas</title>
 	</head>
-	<body>
+	<body class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased selection:bg-indigo-200 selection:text-indigo-950">
 		<slot />
 	</body>
 </html>
-
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		min-height: 100%;
-	}
-
-	* {
-		box-sizing: border-box;
-	}
-
-	body {
-		background: #f4f7fb;
-		color: #172033;
-		font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-	}
-
-	button,
-	select,
-	input {
-		font: inherit;
-	}
-</style>
